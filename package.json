@@ -9,10 +9,30 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@chakra-ui/icons": "^2.0.19",
+    "@chakra-ui/react": "^2.7.1",
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "cheerio": "^1.0.0-rc.12",
+    "dotenv": "^16.3.1",
     "eslint": "8.43.0",
     "eslint-config-next": "13.4.6",
+    "framer-motion": "^10.12.16",
+    "knex": "^2.4.2",
+    "leaflet": "^1.9.4",
     "next": "13.4.6",
-    "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "next-auth": "^4.22.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-leaflet": "^4.2.1",
+    "react-leaflet-markercluster": "^3.0.0-rc1",
+    "sqlite": "^4.2.1",
+    "sqlite3": "^5.1.6",
+    "unirest": "^0.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "20.3.1",
+    "@types/react": "18.2.12",
+    "typescript": "5.1.3"
   }
 }
