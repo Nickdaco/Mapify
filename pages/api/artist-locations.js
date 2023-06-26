@@ -14,7 +14,6 @@ const handler = async (req, res) => {
   } = await getSession({ req });
   const response = await getUsersTopArtists(accessToken);
   const { items } = await response.json();
-  console.log({ items });
 
   let artists = [];
   for (const elem of items) {
