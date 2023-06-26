@@ -7,7 +7,7 @@ export default NextAuth({
   secret: process.env.SECRET,
   providers: [
     SpotifyProvider({
-      authorization: `https://accounts.spotify.com/authorize?scope=${scopes}`,
+      authorization: `https://accounts.spotify.com/authorize?scope=${scopes}&redirect_uri=https://mapify-sepia.vercel.app/api/auth/callback/spotify`,
       clientId: process.env.SPOTIFY_CLIENT_ID,
       clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
     }),
