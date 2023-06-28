@@ -1,9 +1,6 @@
 import { getUsersTopArtists } from "../../lib/spotify";
 import { getSession } from "next-auth/react";
-import {
-  findArtistLocationsDB,
-  findArtistLocations,
-} from "../../utils/generateArtistLocations";
+import { findArtistLocations } from "../../utils/generateArtistLocations";
 import { geocodeLocation } from "../../utils/geocode";
 
 // Get artist list from spotify and return all of the location info

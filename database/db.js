@@ -1,15 +1,8 @@
-const knex = require("knex")({
-  client: "sqlite3",
-  connection: {
-    filename: "./database/data.db",
-  },
-  useNullAsDefault: true,
-});
-
-module.exports = knex;
+import { sql } from "@vercel/postgres";
+import { db } from "@vercel/postgres";
 
 // Add artist name and location info to artist table
-async function addArtistLocation(
+export async function addArtistLocation(
   artistName,
   artistBirthplace = null,
   artistOrigin = null
@@ -21,95 +14,96 @@ async function addArtistLocation(
     );
     return;
   }
+
   try {
-    const newArtistLocation = await knex("artist_locations").insert({
-      artist: artistName,
-      birthplace: artistBirthplace,
-      origin: artistOrigin,
-    });
-    return newArtistLocation;
+    await sql`
+      INSERT INTO artist_locations (artist, birthplace, origin)
+      VALUES (${artistName}, ${artistBirthplace}, ${artistOrigin});
+    `;
   } catch (error) {
     console.error("Error adding artist location:", error);
-    throw error;
   }
 }
 
 // Retrieve artist location info from artist table
 // Returns {artistName: {birthplace: string, origin: string}}
-async function getArtistLocation(artistName) {
+export async function getArtistLocation(artistName) {
+  const query = sql`
+      SELECT birthplace, origin
+      FROM artist_locations
+      WHERE artist = ${artistName};
+    `;
+
+  let locations = {};
   try {
-    const artistInfo = await knex("artist_locations")
-      .select("birthplace", "origin")
-      .where("artist", artistName)
-      .first();
-
-    let locations = {};
-
+    let { rows } = await sql`
+      SELECT birthplace, origin
+      FROM artist_locations
+      WHERE artist = ${artistName};
+    `;
+    const { birthplace, origin } = rows[0];
     locations[artistName] = {
-      birthplace: artistInfo ? artistInfo.birthplace : null,
-      origin: artistInfo ? artistInfo.origin : null,
+      birthplace: birthplace ? birthplace : null,
+      origin: origin ? origin : null,
     };
-
     return locations;
   } catch (error) {
-    console.error("Error retrieving artist information:", error);
-    throw error;
+    locations[artistName] = {
+      birthplace: null,
+      origin: null,
+    };
+    return locations;
+    console.error("Error retrieving artist location:", error);
   }
 }
 
 // Add location coordinates to table
-async function addLocationCoordinates(location, lat, lng) {
+export async function addLocationCoordinates(location, lat, lng) {
   try {
-    const newArtistLocation = await knex("location_coordinates").insert({
-      location: location,
-      lat,
-      lng,
-    });
-    return newArtistLocation;
+    await sql`
+        INSERT INTO location_coordinates (location, lat, lng)
+        VALUES (${location}, ${lat}, ${lng});
+      `;
   } catch (error) {
-    console.error("Error adding artist location:", error);
-    throw error;
+    console.error("Error adding location coordinates:", error);
   }
 }
 
 // retreive location coordinates from table
 // returns {lat: float, lng: float}
-async function getLocationCoordinates(location) {
+export async function getLocationCoordinates(location) {
   try {
-    const locationCoordinates = await knex("location_coordinates")
-      .select("lat", "lng")
-      .where("location", location)
-      .first();
-    if (!locationCoordinates) {
-      // Handle the case where the location coordinates are not found
-      return { lat: null, lng: null }; // Or return a default value
+    const { rows } = await sql`
+      SELECT lat, lng 
+      FROM location_coordinates
+      WHERE location = ${location};
+    `;
+    if (rows === undefined || rows == 0) {
+      return { lat: null, lng: null };
     }
-    return { lat: locationCoordinates.lat, lng: locationCoordinates.lng };
+    const { lat, lng } = rows[0];
+    if (lng === null || lat === null) {
+      return { lat: null, lng: null };
+    }
+    return { lat: lat, lng: lng };
   } catch (error) {
-    console.error("Error retrieving location coordinates:", error);
-    throw error;
+    console.error("Error retrieving location coords:", error);
   }
 }
-
 // Adds location into Failed Location table, to be manually geocoded
-async function addFailedLocation(location) {
+export async function addFailedLocation(location) {
   try {
-    const newFailedLocation = await knex("failed_locations").insert({
-      location: location,
-    });
-    return newFailedLocation;
+    await sql`
+        INSERT INTO failed_locations (location)
+        VALUES (${location});
+
+      `;
   } catch (error) {
-    console.error("Error adding failed location to table:", error);
-    throw error;
+    // ignoring duplicates error, impossible to add duplicate
+    if (
+      !error.message.includes("duplicate key value violates unique constraint")
+    ) {
+      console.error("Error adding failed location:", error);
+    }
   }
 }
-
-// TODO: Add removeFromFailedLocation and inFailedLocation
-
-module.exports = {
-  addArtistLocation,
-  getArtistLocation,
-  addLocationCoordinates,
-  getLocationCoordinates,
-  addFailedLocation,
-};

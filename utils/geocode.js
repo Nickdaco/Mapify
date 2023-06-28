@@ -1,6 +1,6 @@
 // Runs geocoding api to find coordinates of the location
 
-import { addFailedLocation } from "../database/db";
+import { addFailedLocation } from "../database/db.js";
 
 // returns {lat: string, lng: string}
 export async function geocodeLocation(location) {
@@ -17,7 +17,7 @@ export async function geocodeLocation(location) {
     return coords;
   } catch (error) {
     addFailedLocation(location);
-    console.error("Error fetching data:", error);
+    console.error(`Error fetching geocoding data for "${location}":`, error);
     return { lat: null, lng: null };
   }
 }

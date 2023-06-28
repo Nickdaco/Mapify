@@ -3,6 +3,7 @@ import {
   getArtistLocation,
   addLocationCoordinates,
   getLocationCoordinates,
+  addFailedLocation,
 } from "../database/db.js";
 import { geocodeLocation } from "./geocode.js";
 import { findArtistLocationsScrape } from "./scrapeLocations.js";
