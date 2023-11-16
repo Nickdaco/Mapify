@@ -3,7 +3,6 @@ import {
   getArtistLocation,
   addLocationCoordinates,
   getLocationCoordinates,
-  addFailedLocation,
 } from "../database/db.js";
 import { geocodeLocation } from "./geocode.js";
 import { findArtistLocationsScrape } from "./scrapeLocations.js";
@@ -12,35 +11,33 @@ import { findArtistLocationsScrape } from "./scrapeLocations.js";
 // then geocodes location through geocoding api or database
 // returns a list of {artist {birthplace, origin}}
 export async function findArtistLocations(artists) {
-  const artistLocations = [];
-  for (const artist of artists) {
+  const artistLocationsPromises = artists.map(async (artist) => {
     const artistLoc = await getArtistLocation(artist);
 
-    // if artist's in the db, skip scraping and get locations
     if (
       artistLoc[artist].birthplace !== null ||
       artistLoc[artist].origin !== null
     ) {
-      artistLocations.push(artistLoc);
+      return artistLoc;
     } else {
       const scrapedLocation = await findArtistLocationsScrape(artist);
       if (scrapedLocation.birthplace || scrapedLocation.origin) {
-        addArtistLocation(
+        await addArtistLocation(
           artist,
           scrapedLocation.birthplace,
           scrapedLocation.origin
         );
       }
-      let out = {};
-      out[artist] = {
-        birthplace: scrapedLocation.birthplace,
-        origin: scrapedLocation.origin,
+      return {
+        [artist]: {
+          birthplace: scrapedLocation.birthplace,
+          origin: scrapedLocation.origin,
+        },
       };
-
-      artistLocations.push(out);
     }
-  }
+  });
 
+  const artistLocations = await Promise.all(artistLocationsPromises);
   return findLocationCoordinates(artistLocations);
 }
 
@@ -49,36 +46,33 @@ export async function findArtistLocations(artists) {
 // returns list of {artist {birthplace: {name, lat, lng}, origin: {lat, lng}}}
 // TODO simplify by just geocoding locations without the whole artist map
 async function findLocationCoordinates(artistLocations) {
-  const result = [];
-
-  for (const item of artistLocations) {
-    const convertedItem = {};
-
-    for (const [key, value] of Object.entries(item)) {
-      const convertedValue = {};
-      for (const [subKey, location] of Object.entries(value)) {
-        if (location) {
-          let coordinates = await getLocationCoordinates(location);
-          if (coordinates.lat === null && coordinates.lng === null) {
-            coordinates = await geocodeLocation(location);
-            if (coordinates.lat && coordinates.lng) {
-              addLocationCoordinates(
-                location,
-                coordinates.lat,
-                coordinates.lng
-              );
+  const resultPromises = artistLocations.map((item) => {
+    const entries = Object.entries(item).map(async ([key, value]) => {
+      const convertedValue = await Promise.all(
+        Object.entries(value).map(async ([subKey, location]) => {
+          if (location) {
+            let coordinates = await getLocationCoordinates(location);
+            if (coordinates.lat === null && coordinates.lng === null) {
+              coordinates = await geocodeLocation(location);
+              if (coordinates.lat && coordinates.lng) {
+                await addLocationCoordinates(
+                  location,
+                  coordinates.lat,
+                  coordinates.lng
+                );
+              }
             }
+            return { [subKey]: { location, ...coordinates } };
+          } else {
+            return { [subKey]: { location: null, lat: null, lng: null } };
           }
-          convertedValue[subKey] = { location, ...coordinates };
-        } else {
-          convertedValue[subKey] = { location: null, lat: null, lng: null };
-        }
-      }
+        })
+      );
+      return { [key]: Object.assign({}, ...convertedValue) };
+    });
+    return Promise.all(entries).then((entry) => Object.assign({}, ...entry));
+  });
 
-      convertedItem[key] = convertedValue;
-    }
-
-    result.push(convertedItem);
-  }
-  return result;
+  const results = await Promise.all(resultPromises);
+  return results;
 }
